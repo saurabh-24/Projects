@@ -1,0 +1,140 @@
+Title:Analysing the effect of natural events on the public health and the country's economy
+=====================================================================================
+
+
+####Synopsis: In this study we aim to analyse the effects of natural events ,for instance,Hurrican,Flood,rain etc, on public health and economy.For this purpose we have obtained natural events related data from U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database.To analyse the effect on pulic health we take the data related to injuries and fatalities and to analyse the effect on economy  we take the data related damaged property and crop.
+
+###loading the data
+```{r}
+stormdata<-read.csv("repdata%2Fdata%2FStormData.csv.bz2",sep = ",")
+```
+###Processing the data
+```{r}
+damagedata<-stormdata[,c("EVTYPE","INJURIES","FATALITIES","PROPDMG","PROPDMGEXP","CROPDMG","CROPDMGEXP")]
+```
+###Required libraries
+```{r}
+library(plyr)
+library(ggplot2)
+```
+####total injuries due to each event
+```{r}
+totalinjury<-ddply(damagedata, .(EVTYPE),summarise,INJURIES=sum(INJURIES))
+```
+####arranging the totalinjuries in decending order
+```{r}
+totalinjury<-totalinjury[order(totalinjury$INJURIES,decreasing = T),]
+```
+
+
+####total fatalities due to each event
+```{r}
+totalfatality<-ddply(damagedata, .(EVTYPE),summarise,FATALITIES=sum(FATALITIES))
+```
+
+```{r}
+totalfatality<-totalfatality[order(totalfatality$FATALITIES,decreasing = T),]
+```
+
+
+###creating a function to convert all the damage in dollers
+
+```{r}
+
+dol<-function(d){
+  if(d%in%c("h","H")){
+    return(100)
+  }
+  else if(d%in%c("K","k")){
+    return(1000)
+  }
+  else if(d%in%c("m","M")){
+    return(1000000)
+  }
+    else if(d%in%c("B","b")){
+    return(1000000000)
+  
+}
+  else{
+    return(1)
+  }
+  
+}
+```
+1.converting the expressions in power
+```{r}
+propertypower<-sapply(damagedata$PROPDMGEXP,dol)
+croppower<-sapply(damagedata$CROPDMGEXP,dol)
+
+```
+
+2.converting the damages in doller
+```{r}
+damagedata$cropdollar<-damagedata$CROPDMG*croppower
+damagedata$propertydollar<-damagedata$PROPDMG*propertypower
+```
+
+3.adding all the damaged property and crop dollars by the events
+```{r}
+finaldata<-ddply(damagedata, .(EVTYPE),summarise,damaged_property_in_dollars=sum(propertydollar),damaged_crop_in_dollars=sum(cropdollar))
+
+```
+4.ordering the damaged final data in decending order
+```{r}
+propfinaldata<-finaldata[order(finaldata$damaged_property_in_dollars,decreasing = T),]
+cropfinaldata<-finaldata[order(finaldata$damaged_crop_in_dollars,decreasing = T),]
+```
+5.converting the dollars into billions
+```{r}
+propfinaldata$damaged_property_in_billions<-propfinaldata$damaged_property_in_dollars/1000000000
+```
+6.converting the dollors into millions
+```{r}
+cropfinaldata$damaged_crop_in_millions<-cropfinaldata$damaged_crop_in_dollars/1000000
+```
+
+##RESULT:
+
+###Effect of events on population health
+1.Most effective events on population health in terms of Injuries
+```{r}
+head(totalinjury,n=15)
+```
+2.plotting the most effecctive events on the basis of injuries
+```{r}
+ggplot(head(totalinjury,n=10),aes(x=reorder(EVTYPE,INJURIES),y=INJURIES))+geom_bar(fill="steelblue",stat="identity")+coord_flip()+ylab("INJURIES")+xlab("EVENT TYPES")+ggtitle("Number of injuries due to events")
+
+```
+
+3..Most effective events on population health in terms of fatalities
+```{r}
+head(totalfatality,n=15)
+```
+4.plotting the most effecctive events on the basis of fatalities
+```{r}
+ggplot(head(totalfatality,n=10),aes(x=reorder(EVTYPE,FATALITIES),y=FATALITIES))+geom_bar(fill="steelblue",stat="identity")+coord_flip()+ylab("FATALITIES")+xlab("EVENT TYPES")+ggtitle("Number of fatalities due to events")
+
+```
+
+
+##Economic consequences due to events
+###property damage due to events
+```{r}
+head(propfinaldata,n=15)
+
+```
+####plotting the damage of properties due to events 
+```{r}
+ggplot(head(propfinaldata,n=10),aes(x=reorder(EVTYPE,damaged_property_in_billions),y=damaged_property_in_billions))+geom_bar(fill="steelblue",stat="identity")+coord_flip()+ylab("damaged property in BILLIONS")+xlab("EVENT TYPES")+ggtitle("Property damage due to events")
+```
+
+###crop damage due to events
+```{r}
+head(cropfinaldata,n=15)
+
+```
+
+###plotting the damaged crop due to events
+```{r}
+ggplot(head(cropfinaldata,n=10),aes(x=reorder(EVTYPE,damaged_crop_in_millions),y=damaged_crop_in_millions))+geom_bar(fill="steelblue",stat="identity")+coord_flip()+ylab("damaged property in MILLIONS")+xlab("EVENT TYPES")+ggtitle("Crop damage due to events")
+```

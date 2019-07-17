@@ -1,0 +1,46 @@
+---
+title: "Statistical inference"
+author: "Saurabh Yadav"
+output: pdf_document
+---
+##PART1-A Simulation Excersise
+
+##
+
+####Simulating exponantial variables
+```{r}
+library(ggplot2)
+n<-1000
+col<-40
+expovar<-rexp(n*col,0.2)
+```
+
+####creating matrix for the exponantial variables
+```{r}
+mat<-matrix(expovar,n,col)
+```
+####taking the mean of the 40 exponantial variables
+```{r}
+expomean<-apply(mat, 1, mean)
+```
+
+###Comparisons
+####Comparison between sample mean and the theoretical mean
+#### 1.mean of the population
+```{r}
+mean(expovar)
+```
+
+####plotting the distribution of averages
+```{r}
+ggplot(data.frame(expomean),aes(expomean))+geom_histogram(aes(y=..density..),col="black",fill="steelblue")+geom_density(col="black")+geom_vline(aes(xintercept=mean(expomean, na.rm=T)))+labs(x="averages of 40 variables")
+```
+
+
+###RESULT
+
+####1.The plot shows the distribution of averages is normally distributed and follows the Central Limit Theorm
+
+####2.The population mean and the mean of averages are approximate beacause the plot is centered around the population mean
+
+

@@ -1,0 +1,158 @@
+---
+title: "Project AC 01  "
+author: "Saurabh Yadav and Vishakha khandeker"
+date: "17 July 2019"
+output: html_document
+---
+
+##Team AC01
+### Team members 
+
+####1. Vishakha khandeker (Team representative)  (vishakakhandekar@gmail.com) 
+####2. Saurabh Yadav (saurabhy506@gmail.com)
+
+##Abstract
+
+####This project is document summarizer which summarises an article into few lines. The project is working on text rank algorithm. First the model is trained using latent drichlet allocation. The Lda model three matrix- theta, gamma and phi. the lda converts the training documents into topics to create resemblance among the documents. In other words the Lda model creates word embeddings.Then the model is used on the artcile which has to be sumarized. Here the matrix gamma is used directly instead of function predict because the gamma matrix yield higher accuracy.After applying the model the matrix shows the probabilty of occurence of one sentence after another. Finally the matrix is converted into graph where nodes are sentences and the edges are the words.The nodes are assigned a number or weight through eigen vector centrality.This gives ranks to the sentences and the top sentences are returend as a result. 
+
+
+
+###Loading the required libraries
+
+```{r , eval=FALSE}
+library(shiny)
+library(text2vec)
+library(textmineR)
+library(igraph)
+library(data.table)
+library(Matrix)
+```
+
+
+
+```{r, eval=FALSE}
+
+####Training the model (This part will take time to be process so they are commented and a trained data is provided on github)
+
+
+train<- assign the article on which you want to traing your model
+
+###Cleaning the training document
+
+train<- gsub("!|@|#|$|%|^|&|*|\n","",train)
+
+### creating Term co-occurence matrix
+
+tcm <- CreateTcm(doc_vec = movie_review$review,skipgram_window = 10,verbose = FALSE,cpus = 2)
+
+###############training the model (will take time)###############
+
+embeddings <- FitLdaModel(dtm = tcm,k = 100,iterations = 400,burnin = 180,alpha = 0.1,beta = 0.05,optimize_alpha = TRUE,calc_likelihood = FALSE,calc_coherence = FALSE,calc_r2 = FALSE,cpus = 2)
+
+gamma<- embedding$gamma
+
+```
+
+
+###One function to summarize the article
+
+```{r, eval=FALSE}
+####function for the summarizer
+
+summarizer2<-function(document, gamma,number_of_sentences) {
+
+#### cleaning the article
+  
+  document<-gsub("!|@|#|$|%|^|&|*|\n","",document)
+
+#### splitting the article into sentences
+  
+  st <- stringi::stri_split_boundaries(document, type = "sentence")[[ 1 ]]
+  
+#### tokenizing or assigning numbers to sentences
+  names(st) <- seq_along(st) 
+
+#### Creating Document term matrix
+  
+  et <- CreateDtm(st, ngram_window = c(1,1), verbose = FALSE, cpus = 2)
+
+## taking the common colonms of our trained model which is gamma and the documents which has been converted
+##into DTM
+  
+  vocab <- intersect(colnames(et), colnames(gamma))
+
+## Normalizating the DTM
+  
+  et <- et / rowSums(et)
+  
+## Multiplying the DTM matrix and the trained matrix
+  
+  et <- et[ , vocab ] %*% t(gamma[ , vocab ])
+  
+  et <- as.matrix(et)
+  
+  et <- as.matrix(et)
+  
+## calculating hellinger distance which quantifies the probability of similarity between two sentences
+##   
+  
+  dist <- CalcHellingerDist(et)
+  
+## For convinience
+  
+  mat <- (1 - dist) * 100
+
+## assinging 0's to all the diagonal values so the sentences do not show the similarity to each other
+  
+  diag(mat) <- 0
+
+####    
+  mat <- apply(mat, 1, function(x){
+    x[ x < sort(x, decreasing = TRUE)[ 3 ] ] <- 0
+    x
+  })
+####  
+  g <- pmax(mat, t(mat))
+  
+  
+#### converting into graph
+  
+  g <- graph.adjacency(g, mode = "undirected", weighted = TRUE)
+  
+  
+####Ranking the sentences using eigen vector centrality
+  
+  ev <- evcent(g)
+  
+  a<-number_of_sentences
+  result <- st[ names(ev$vector)[ order(ev$vector, decreasing = TRUE)[ 1:a ] ] ]
+  
+  result <- result[ order(as.numeric(names(result))) ]
+  return(paste(result, collapse = " "))
+  
+}
+
+```
+
+
+
+##Usage
+### In function summarizer2 give 3 arguments
+### 1. Document>>  article that has to be summarized
+### 2. Gamma>>   The trained LDA model
+### 3. number_of_sentence>> number of sentences you want to summarize your article in
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

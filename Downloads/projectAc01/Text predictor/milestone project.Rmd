@@ -1,0 +1,271 @@
+---
+title: "CAPSTONE"
+author: "Saurabh Yadav"
+date: "25 October 2018"
+output: html_document
+---
+
+##Executive summary
+
+#### In this milestone we have to analyse a corpus of data of different languages of dataset.The corpus data is used here is in english. Now we have to use the corpus to do some exploratory analysis.In the analysis the following points will be consider:
+
+#### 1. The size of file and the numbers of lines and charcaters
+####2.The most texted and using uni gram words.
+####3. The most texted and using bi-gram words.
+####4. The most texted and using tri-gram words.
+
+
+###This exploratory anaysis part is divided in two parts
+
+####1.PART-1: Preperation and cleaning of corpus and converting them in accessible form
+####2.PART-2: Exploratory Analysis
+
+
+
+
+##PART-1:Preperation and cleaning of corpus and converting them in accessible form
+
+
+###downloading the data
+```{r}
+##Since dowloading will take long time so I am putting the code below as comment
+
+#link<-"https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+#file<-download.file(url = link,destfile = "capstone.zip")
+
+```
+####Loading the required library
+
+```{r,message=FALSE,warning=FALSE}
+library(ggplot2)
+library(tm)
+library(NLP)
+```
+
+####Loading the dataset
+
+```{r,warning=FALSE,message=FALSE}
+####Creating the corpus
+blog<-readLines("en_US.blogs.txt",warn = FALSE)
+tweets<-readLines("en_US.twitter.txt",warn = FALSE)
+news<-readLines("en_US.news.txt",warn = FALSE)
+
+```
+
+###Corpus analysis
+
+```{r}
+
+info<-data.frame(dataset=c("en_US.blogs","en_US.news","en_US.twitter"),number_of_lines=c(length(blog),length(news),length(tweets)),number_of_characters=c(sum(nchar(blog)),sum(nchar(news)),sum(nchar(tweets))),file_size=c(200,196,159))
+
+info
+```
+
+
+
+
+###Creating the sample data set only 10 percent of the each en_US dataset
+
+```{r}
+###taking the sample index
+sampleblog_index<-sample(seq_len(length(blog)),size = length(blog)*0.10)
+samplenews_index<-sample(seq_len(length(news)),size = length(news)*0.10)
+sampletweets_index<-sample(seq_len(length(tweets)),size = length(tweets)*0.10)
+
+
+blog<-blog[sampleblog_index]
+news<-news[samplenews_index]
+tweets<-tweets[sampletweets_index]
+
+```
+
+
+###Functions for cleaning the sample dataset
+
+```{r}
+rempunct<-function(x)(gsub("[[:punct:]]","",x))
+remdigit<-function(x)(gsub("[0-9]", "",x))
+remurl<-function(x)(gsub("http[[:alnum:]]*","",x))
+remnonascii<-function(x)(iconv(x,"latin1","ASCII",""))
+removeap<-function(x)(gsub("'","",x))
+lowercase<-function(x)tolower(x)
+```
+
+###creating a data frame and applying the function on it
+
+```{r}
+df1<-data.frame(c(blog,news,tweets))
+df<-df1$c.blog..news..tweets.
+df<-as.character(df)
+df<-rempunct(df)
+df<-remdigit(df)
+df<-remurl(df)
+df<-remnonascii(df)
+df<-removeap(df)
+df<-lowercase(df)
+
+```
+
+### Creating All UNI-GRAM ,BI-GRAM and TRI-GRAM words
+
+```{r}
+count<-0
+strspl<-strsplit(df, " ")
+allwords_onegram<-c()
+####converting all the words in large vector for one gram
+for(i in 1:length(strspl)){
+  d<-strspl[[i]]
+  for (j in d) {
+    count=count+1
+    allwords_onegram[count]<-j
+  }
+}
+count<-0
+
+##creating all bi gram words
+
+allwords_bigram<-c()
+for (i in 1:length(strspl)) {
+  d1<-strspl[[i]]
+  d2<-ngrams(d1,2)
+  d3<-vapply(d2, paste, "" ,collapse=" ")
+  
+  for (j in d3) {
+    count=count+1
+    allwords_bigram[count]<-j
+  }
+}
+
+count<-0
+
+##creating all tri gram words
+allwords_trigram<-c()
+for (i in 1:length(strspl)) {
+  
+  d1<-strspl[[i]]
+  d2<-ngrams(d1,3)
+  d3<-vapply(d2, paste, "" ,collapse=" ")
+  
+  for (j in d3) {
+    count=count+1
+    allwords_trigram[count]<-j
+  }
+  
+}
+```
+
+
+###Creating the data frame for uni fram,bigram and trigram words
+
+```{r}
+one_gram_words<-data.frame(table(as.matrix(allwords_onegram)))
+bi_gram_words<-data.frame(table(as.matrix(allwords_bigram)))
+tri_gram_words<-data.frame(table(as.matrix(allwords_trigram)))
+
+words<-one_gram_words[order(one_gram_words$Freq,decreasing = T),]
+bigram<-bi_gram_words[order(bi_gram_words$Freq,decreasing = T),]
+trigram<-tri_gram_words[order(tri_gram_words$Freq,decreasing = T),]
+```
+
+
+####Cleaning the most common words from the uni-gram words
+```{r}
+common_word<-c("a","i","you","he","she","it","they","we","are","is","am","has","had","was","were","been","will","to","the","in","or","and","at","might","could","for","of","on","my","that","this","so","as","not","all","its","im","from","out","if","have","me","an","can","could","","his","her","them","there","us","him","would")
+lg<-words$Var1%in%common_word
+allwords<-words[!lg,]
+
+```
+
+##2.PART-2: Exploratory Analysis
+
+###Analysis of uni gram words
+
+####1. Top 30 uni gram words 
+
+```{r}
+a1<-allwords$Var1
+a2<-allwords$Freq
+unigrams<-data.frame(words=a1,Frequency=a2)
+
+unigrams[1:30,]
+
+```
+
+####2. first 25 words are too obvious so we will use only words after 25
+
+####3. Plot for unigram analysis
+```{r}
+##taking only the most used general words
+mostusedwords<-unigrams[25:40,]
+ggplot(mostusedwords,aes(words,Frequency))+geom_bar(stat = "identity")
+```
+
+
+###Analysis of bi gram words
+
+####1. Top 30 bigrams
+
+```{r}
+a3=bigram$Var1
+a4=bigram$Freq
+bigram1<-data.frame(words=a3,Frequency=a4)
+bigram1[1:30,]
+
+```
+####2.first 30 lines are not any informative. So we will use after the 30 bi grams in data frame
+####3. Top 10 bi gram words 
+```{r}
+
+bigram1[30:40,]
+```
+
+
+####4. Plot for bi gram analysis
+
+```{r}
+most_bigram_used<-bigram1[30:40,]
+ggplot(most_bigram_used,aes(words,Frequency))+geom_bar(stat = "identity")
+
+```
+
+
+
+
+###Analysis of tri gram words
+
+####1. Top 30 trigrams
+
+```{r}
+a5=trigram$Var1
+a6=trigram$Freq
+trigram1<-data.frame(words=a5,Frequency=a6)
+trigram1[1:30,]
+
+```
+####2.first 10 lines are not any informative. So we will use after the 10 tri grams in data frame
+####3. Top 10 tri gram words 
+```{r}
+
+trigram1[10:20,]
+```
+
+
+####4. Plot for tri gram analysis
+
+```{r}
+
+most_trigram_used<-trigram1[10:20,]
+```
+
+
+```{r,fig.width=10}
+ggplot(most_trigram_used,aes(words,Frequency))+geom_bar(stat = "identity")
+
+```
+
+
+
+
+
+
+
